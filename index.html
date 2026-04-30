@@ -203,6 +203,18 @@
       .risk-btn { padding: 5px 9px; font-size: 12px; }
       .updated { display: none; }
     }
+  
+    .criteria-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; color: #475569; margin-bottom: 14px;
+    }
+    .criteria-label { font-weight: 700; color: #1e293b; white-space: nowrap; }
+    .criteria-sep { color: #94a3b8; }
+    .c-red   { color: #ef4444; font-weight: 600; }
+    .c-amber { color: #f59e0b; font-weight: 600; }
+    .c-grn   { color: #10b981; font-weight: 600; }
+    .c-div   { color: #cbd5e1; margin: 0 6px; }
   </style>
 </head>
 <body>
@@ -249,22 +261,11 @@
   </div>
 
   <div class="main">
-    <div class="signal-rules" aria-label="信号の判定条件">
-      <p class="signal-rules-title">赤・黄・緑の条件（上部の「納期遵守率 / 品質スコア」切替で1つを選び、その色をカードに表示）</p>
-      <div class="signal-rules-cols">
-        <div class="rule-block">
-          <div class="rule-h"><span class="rule-dot" style="background:#ef4444"></span><span class="rule-dot" style="background:#f59e0b"></span><span class="rule-dot" style="background:#10b981"></span>納期遵守率</div>
-          <div class="rule-row"><span class="r-red">危険(赤)：</span>未満 85%</div>
-          <div class="rule-row"><span class="r-amber">注意(黄)：</span>85% 以上 95% 未満</div>
-          <div class="rule-row"><span class="r-grn">問題なし(緑)：</span>95% 以上</div>
-        </div>
-        <div class="rule-block">
-          <div class="rule-h"><span class="rule-dot" style="background:#ef4444"></span><span class="rule-dot" style="background:#f59e0b"></span><span class="rule-dot" style="background:#10b981"></span>品質スコア</div>
-          <div class="rule-row"><span class="r-red">危険(赤)：</span>未満 80%</div>
-          <div class="rule-row"><span class="r-amber">注意(黄)：</span>80% 以上 90% 未満</div>
-          <div class="rule-row"><span class="r-grn">問題なし(緑)：</span>90% 以上</div>
-        </div>
-      </div>
+    <div class="criteria-bar">
+  <span class="criteria-label">判定基準</span>
+  <span class="criteria-sep">—</span>
+  <span id="criteria-content"></span>
+</div>
       <p class="rule-row" style="margin-top:8px;font-size:10px;color:#94a3b8;">複合リスク：上記のうち「納期が赤」かつ「品質が赤」に当てはまる発注先</p>
     </div>
     <div class="search-wrap">
@@ -491,7 +492,15 @@
     }).join('');
   }
 
+  
+  const CRITERIA = {"delivery":"<span class=\"c-red\">● 赤: 85%未満</span>　<span class=\"c-amber\">● 黄: 85〜94%</span>　<span class=\"c-grn\">● 緑: 95%以上</span><span class=\"c-div\">|</span>納期遵守率","quality":"<span class=\"c-red\">● 赤: 80%未満</span>　<span class=\"c-amber\">● 黄: 80〜89%</span>　<span class=\"c-grn\">● 緑: 90%以上</span><span class=\"c-div\">|</span>品質スコア"};
+  function updateCriteria(m) {
+    const el = document.getElementById('criteria-content');
+    if (el && CRITERIA[m]) el.innerHTML = CRITERIA[m];
+  }
+  updateCriteria('delivery');
   function setMetric(m) {
+    updateCriteria(m);
     metric = m;
     document.getElementById('btn-dlv').classList.toggle('active', m === 'delivery');
     document.getElementById('btn-qlt').classList.toggle('active', m === 'quality');
