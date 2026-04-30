@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ビジネスシグナル | 発注先</title>
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif; background: #f5f7fa; color: #2c3e50; min-height: 100vh; }
+    #drop-zone {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+      color: white; text-align: center; padding: 40px;
+    }
+    #drop-zone.drag-over { outline: 3px dashed rgba(255,255,255,0.5); outline-offset: -20px; }
+    .drop-icon { font-size: 64px; margin-bottom: 20px; }
+    .drop-title { font-size: 26px; font-weight: 700; margin-bottom: 10px; }
+    .drop-sub { font-size: 15px; opacity: 0.8; margin-bottom: 32px; line-height: 1.7; }
+    .drop-btn { background: white; color: #ea580c; border: none; padding: 13px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 16px; }
+    .back-btn { background: transparent; border: 1.5px solid rgba(255,255,255,0.4); color: white; padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; margin-bottom: 32px; }
+    .drop-hint { background: rgba(255,255,255,0.12); border-radius: 12px; padding: 18px 28px; max-width: 540px; text-align: left; }
+    .drop-hint-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.75; margin-bottom: 12px; text-transform: uppercase; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 7px; }
+    .col-tag { background: rgba(255,255,255,0.18); border-radius: 20px; padding: 4px 12px; font-size: 12px; }
+    .col-tag.req { background: rgba(255,255,255,0.38); font-weight: 600; }
+    #file-input { display: none; }
+
+    #dashboard { display: block; }
+    .header { background: #ea580c; color: white; padding: 0 24px; height: 54px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+    .header-left { display: flex; align-items: center; gap: 9px; }
+    .header-icon { font-size: 19px; }
+    .header-title { font-size: 16px; font-weight: 700; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .demo-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35); color: white; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.05em; }
+    .toggle-group { display: flex; background: rgba(255,255,255,0.14); border-radius: 8px; padding: 3px; gap: 2px; }
+    .tog-btn { background: transparent; border: none; color: rgba(255,255,255,0.8); padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .tog-btn.active { background: white; color: #ea580c; font-weight: 700; }
+    .risk-btn { background: rgba(255,255,255,0.14); border: none; color: white; padding: 5px 13px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+    .risk-btn.active { background: rgba(239,68,68,0.75); }
+    .updated { font-size: 10px; opacity: 0.65; text-align: right; line-height: 1.5; }
+
+    .main { padding: 18px 24px; max-width: 1440px; margin: 0 auto; }
+    .search-wrap { margin-bottom: 14px; }
+    .search-input { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 9px 14px; font-size: 14px; width: 280px; outline: none; transition: border-color 0.15s; }
+    .search-input:focus { border-color: #ea580c; }
+
+    .summary-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .sum-card { background: white; border-radius: 10px; padding: 15px 18px; border: 1.5px solid #e5e7eb; cursor: pointer; transition: all 0.15s; }
+    .sum-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .sum-card.active { border-color: #ea580c; box-shadow: 0 2px 12px rgba(234,88,12,0.15); }
+    .sum-card.s-total  { border-left: 4px solid #ea580c; }
+    .sum-card.s-danger { border-left: 4px solid #ef4444; }
+    .sum-card.s-warn   { border-left: 4px solid #f59e0b; }
+    .sum-card.s-good   { border-left: 4px solid #10b981; }
+    .sum-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+    .sum-num { font-size: 32px; font-weight: 700; line-height: 1; }
+    .sum-num.c-total  { color: #ea580c; }
+    .sum-num.c-danger { color: #ef4444; }
+    .sum-num.c-warn   { color: #f59e0b; }
+    .sum-num.c-good   { color: #10b981; }
+    .sum-unit { font-size: 13px; font-weight: 400; color: #9ca3af; margin-left: 3px; }
+
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .section-title { font-size: 14px; font-weight: 600; color: #374151; }
+    .legend { display: flex; gap: 14px; font-size: 12px; color: #6b7280; }
+    .ldot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 11px; }
+    .c-card { background: white; border-radius: 10px; padding: 13px; border: 1.5px solid #e5e7eb; cursor: pointer; transition: all 0.15s; }
+    .c-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .c-card.danger  { border-color: #fecaca; }
+    .c-card.warning { border-color: #fde68a; }
+    .c-card.good    { border-color: #a7f3d0; }
+    .c-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+    .c-id { font-size: 10px; color: #9ca3af; }
+    .sig { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .sig.danger  { background: #ef4444; }
+    .sig.warning { background: #f59e0b; }
+    .sig.good    { background: #10b981; }
+    .c-sub { font-size: 10px; color: #9ca3af; margin-bottom: 4px; }
+    .c-name { font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .c-val { font-size: 26px; font-weight: 700; line-height: 1; }
+    .c-val .unit { font-size: 13px; font-weight: 400; }
+    .c-val.danger  { color: #ef4444; }
+    .c-val.warning { color: #f59e0b; }
+    .c-val.good    { color: #10b981; }
+    .no-results { text-align: center; padding: 60px 20px; color: #9ca3af; grid-column: 1 / -1; font-size: 14px; }
+
+    .signal-rules { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 16px 14px; margin-bottom: 14px; }
+    .signal-rules-title { font-size: 12px; font-weight: 700; color: #1e293b; margin: 0 0 8px; letter-spacing: 0.02em; }
+    .signal-rules-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 700px) { .signal-rules-cols { grid-template-columns: 1fr; } }
+    .rule-block { font-size: 11px; color: #475569; line-height: 1.45; }
+    .rule-h { font-weight: 600; color: #334155; margin-bottom: 5px; font-size: 11px; }
+    .rule-h .rule-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .rule-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 1px 0; }
+    .r-red { color: #b91c1c; font-weight: 600; }
+    .r-amber { color: #b45309; font-weight: 600; }
+    .r-grn { color: #047857; font-weight: 600; }
+
+    @keyframes crFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .compound-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; padding-top: max(16px, env(safe-area-inset-top));
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      visibility: hidden; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .compound-overlay.open { visibility: visible; opacity: 1; pointer-events: auto; }
+    .compound-panel {
+      width: 100%; max-width: 28rem; max-height: min(88vh, 640px);
+      background: #fff; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      display: flex; flex-direction: column;
+      animation: crFadeIn 0.2s ease-out forwards;
+    }
+    .compound-header {
+      position: relative; background: #fff1f1; padding: 20px 20px 16px; flex-shrink: 0; border-radius: 12px 12px 0 0;
+    }
+    .compound-close {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: none; border-radius: 50%;
+      background: transparent; color: #9ca3af; font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .compound-close:hover { color: #4b5563; background: rgba(0,0,0,0.05); }
+    .compound-h1 { display: flex; align-items: flex-start; gap: 10px; }
+    .compound-dot { width: 12px; height: 12px; border-radius: 50%; background: #ef4444; flex-shrink: 0; margin-top: 3px; }
+    .compound-title { font-size: 16px; font-weight: 700; color: #991b1b; line-height: 1.35; margin: 0; }
+    .compound-sub { font-size: 14px; color: #dc2626; margin: 6px 0 0; line-height: 1.45; }
+    .compound-body { padding: 10px 12px 12px; overflow-y: auto; flex: 1; min-height: 0; background: #fff; }
+    .cr-item {
+      display: flex; justify-content: space-between; gap: 10px; align-items: flex-start;
+      padding: 12px; margin-bottom: 8px; border-radius: 8px;
+      border: 1px solid rgba(254, 202, 202, 0.9); background: #fff5f5; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cr-item:last-child { margin-bottom: 0; }
+    .cr-item:hover { background: #ffeded; border-color: #f87171; }
+    .cr-left { min-width: 0; flex: 1; }
+    .cr-id { font-size: 10px; color: #9ca3af; margin-bottom: 2px; }
+    .cr-name { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.3; word-break: break-word; }
+    .cr-addr { font-size: 12px; color: #6b7280; margin-top: 3px; display: flex; align-items: flex-start; gap: 3px; }
+    .cr-metric { text-align: right; font-size: 14px; font-weight: 600; color: #dc2626; line-height: 1.35; }
+
+    .overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.48); z-index: 200; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; pointer-events: none; }
+    .overlay.open { visibility: visible; opacity: 1; pointer-events: auto; }
+    .modal { background: white; border-radius: 16px; width: 480px; max-width: 92vw; max-height: 88vh; overflow-y: auto; padding: 26px; position: relative; flex-shrink: 0; }
+    .modal-close { position: absolute; top: 14px; right: 14px; background: #f3f4f6; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+    .modal-tags { display: flex; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
+    .mtag { background: #f3f4f6; border-radius: 20px; padding: 3px 11px; font-size: 12px; color: #6b7280; }
+    .modal-name { font-size: 21px; font-weight: 700; margin-bottom: 18px; line-height: 1.3; }
+    .modal-toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 3px; margin-bottom: 14px; gap: 2px; }
+    .mtog-btn { background: transparent; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .mtog-btn.active { background: #ea580c; color: white; font-weight: 700; }
+    .modal-info { background: #f8f9fb; border-radius: 8px; padding: 11px 15px; margin-bottom: 14px; font-size: 13px; color: #374151; display: flex; justify-content: space-between; align-items: center; }
+    .modal-info-lbl { color: #6b7280; }
+    .mmetric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .mmetric { border-radius: 10px; padding: 13px; text-align: center; }
+    .mmetric.bg-good    { background: #f0fdf4; }
+    .mmetric.bg-warning { background: #fffbeb; }
+    .mmetric.bg-danger  { background: #fef2f2; }
+    .mmetric.bg-neutral { background: #f8f9fb; }
+    .mm-lbl { font-size: 11px; color: #6b7280; margin-bottom: 5px; }
+    .mm-val { font-size: 24px; font-weight: 700; }
+    .mm-val .u { font-size: 13px; font-weight: 400; margin-left: 1px; }
+    .mm-val.good    { color: #10b981; }
+    .mm-val.warning { color: #f59e0b; }
+    .mm-val.danger  { color: #ef4444; }
+    .mm-val.orange  { color: #ea580c; }
+    .mm-val.gray    { color: #374151; }
+  </style>
+</head>
+<body>
+
+<div id="drop-zone">
+  <div class="drop-icon">🏭</div>
+  <div class="drop-title">自社データを読み込む</div>
+  <div class="drop-sub">発注先データのExcelをここにドロップすると<br>信号機ダッシュボードが自動で表示されます</div>
+  <button class="drop-btn" onclick="document.getElementById('file-input').click()">📂 Excelファイルを選択する</button>
+  <button class="back-btn" onclick="backToDemo()">← サンプルデモに戻る</button>
+  <div class="drop-hint">
+    <div class="drop-hint-title">Excelに必要な列（太字は必須）</div>
+    <div class="tag-list">
+      <span class="col-tag req">発注先名</span>
+      <span class="col-tag req">納期遵守率(%)</span>
+      <span class="col-tag req">品質スコア(%)</span>
+      <span class="col-tag req">発注金額(万円/月)</span>
+      <span class="col-tag">業種</span>
+      <span class="col-tag">担当者</span>
+      <span class="col-tag">発注件数</span>
+      <span class="col-tag">取引開始</span>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(event)">
+</div>
+
+<div id="dashboard">
+  <div class="header">
+    <div class="header-left">
+      <span class="header-icon">🏭</span>
+      <span class="header-title">ビジネスシグナル | 発注先</span>
+      <span class="demo-badge" id="demo-label">SAMPLE</span>
+    </div>
+    <div class="header-right">
+      <div class="toggle-group">
+        <button class="tog-btn active" onclick="setMetric('delivery')" id="btn-dlv">納期遵守率</button>
+        <button class="tog-btn" onclick="setMetric('quality')" id="btn-qlt">品質スコア</button>
+      </div>
+      <button class="risk-btn" onclick="toggleComposite()" id="btn-comp">
+        <span style="color:#f87171">●</span> 複合リスク
+      </button>
+      <div class="updated">最終更新<br><span id="updated-time"></span></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="signal-rules" aria-label="信号の判定条件">
+      <p class="signal-rules-title">赤・黄・緑の条件（上部の「納期遵守率 / 品質スコア」切替で1つを選び、その色をカードに表示）</p>
+      <div class="signal-rules-cols">
+        <div class="rule-block">
+          <div class="rule-h"><span class="rule-dot" style="background:#ef4444"></span><span class="rule-dot" style="background:#f59e0b"></span><span class="rule-dot" style="background:#10b981"></span>納期遵守率</div>
+          <div class="rule-row"><span class="r-red">危険(赤)：</span>未満 85%</div>
+          <div class="rule-row"><span class="r-amber">注意(黄)：</span>85% 以上 95% 未満</div>
+          <div class="rule-row"><span class="r-grn">問題なし(緑)：</span>95% 以上</div>
+        </div>
+        <div class="rule-block">
+          <div class="rule-h"><span class="rule-dot" style="background:#ef4444"></span><span class="rule-dot" style="background:#f59e0b"></span><span class="rule-dot" style="background:#10b981"></span>品質スコア</div>
+          <div class="rule-row"><span class="r-red">危険(赤)：</span>未満 80%</div>
+          <div class="rule-row"><span class="r-amber">注意(黄)：</span>80% 以上 90% 未満</div>
+          <div class="rule-row"><span class="r-grn">問題なし(緑)：</span>90% 以上</div>
+        </div>
+      </div>
+      <p class="rule-row" style="margin-top:8px;font-size:10px;color:#94a3b8;">複合リスク：上記のうち「納期が赤」かつ「品質が赤」に当てはまる発注先</p>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" id="search" type="text" placeholder="🔍 発注先名・業種・担当者で検索" oninput="renderCards()">
+    </div>
+    <div class="summary-row">
+      <div class="sum-card s-total active" onclick="setFilter('all')" id="sc-all">
+        <div class="sum-label">🏭 全発注先数</div>
+        <div><span class="sum-num c-total" id="cnt-all">0</span><span class="sum-unit">社</span></div>
+      </div>
+      <div class="sum-card s-danger" onclick="setFilter('danger')" id="sc-danger">
+        <div class="sum-label"><span style="color:#ef4444">●</span> 危険</div>
+        <div><span class="sum-num c-danger" id="cnt-danger">0</span><span class="sum-unit">社</span></div>
+      </div>
+      <div class="sum-card s-warn" onclick="setFilter('warning')" id="sc-warning">
+        <div class="sum-label"><span style="color:#f59e0b">●</span> 注意</div>
+        <div><span class="sum-num c-warn" id="cnt-warning">0</span><span class="sum-unit">社</span></div>
+      </div>
+      <div class="sum-card s-good" onclick="setFilter('good')" id="sc-good">
+        <div class="sum-label"><span style="color:#10b981">●</span> 問題なし</div>
+        <div><span class="sum-num c-good" id="cnt-good">0</span><span class="sum-unit">社</span></div>
+      </div>
+    </div>
+    <div class="section-header">
+      <span class="section-title" id="sec-title">全発注先の一覧</span>
+      <div class="legend">
+        <span><span class="ldot" style="background:#ef4444"></span>危険</span>
+        <span><span class="ldot" style="background:#f59e0b"></span>注意</span>
+        <span><span class="ldot" style="background:#10b981"></span>問題なし</span>
+      </div>
+    </div>
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="maybeClose(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-tags" id="m-tags"></div>
+    <div class="modal-name" id="m-name"></div>
+    <div class="modal-toggle">
+      <button class="mtog-btn active" onclick="setMTab('delivery')" id="mb-dlv">納期遵守率</button>
+      <button class="mtog-btn" onclick="setMTab('quality')" id="mb-qlt">品質スコア</button>
+    </div>
+    <div class="modal-info" id="m-info"></div>
+    <div class="mmetric-grid" id="m-metrics"></div>
+  </div>
+</div>
+
+<div class="compound-overlay" id="compound-overlay" onclick="maybeCloseCompound(event)">
+  <div class="compound-panel" onclick="event.stopPropagation()">
+    <div class="compound-header">
+      <button type="button" class="compound-close" onclick="closeCompoundModal()" aria-label="閉じる">✕</button>
+      <div class="compound-h1">
+        <span class="compound-dot" aria-hidden="true"></span>
+        <div>
+          <h2 class="compound-title" id="compound-h1">複合リスク</h2>
+          <p class="compound-sub" id="compound-sub"></p>
+        </div>
+      </div>
+    </div>
+    <div class="compound-body" id="compound-list"></div>
+  </div>
+</div>
+
+<script>
+  function __escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function buildCompoundListHacchu(list) {
+    document.getElementById('compound-h1').textContent = '納期・品質 両方赤の発注先';
+    document.getElementById('compound-sub').textContent = '納期が危険（85%未満）かつ 品質が危険（80%未満）';
+    const el = document.getElementById('compound-list');
+    if (!el) return;
+    if (!list.length) {
+      el.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:2.5rem 0;font-size:14px;">該当する発注先はありません。</p>';
+      return;
+    }
+    el.innerHTML = list.map(s => `
+      <div class="cr-item" role="button" onclick="openFromComposite(${s.id})">
+        <div class="cr-left">
+          <div class="cr-id">No.${s.id}</div>
+          <div class="cr-name">${__escH(s.name)}</div>
+          <div class="cr-addr"><span aria-hidden="true">・</span>${__escH(s.industry || '')} · ${__escH(s.manager || '')}</div>
+        </div>
+        <div>
+          <div class="cr-metric">納期 ${s.delivery.toFixed(1)}%</div>
+          <div class="cr-metric">品質 ${s.quality.toFixed(1)}%</div>
+        </div>
+      </div>`).join('');
+  }
+  function closeCompoundModal() {
+    const o = document.getElementById('compound-overlay');
+    if (o) o.classList.remove('open');
+    composite = false;
+    const b = document.getElementById('btn-comp');
+    if (b) b.classList.remove('active');
+    renderCards();
+  }
+  function maybeCloseCompound(e) { if (e.target === document.getElementById('compound-overlay')) closeCompoundModal(); }
+  function openFromComposite(id) {
+    const o = document.getElementById('compound-overlay');
+    if (o) o.classList.remove('open');
+    composite = false;
+    const b = document.getElementById('btn-comp');
+    if (b) b.classList.remove('active');
+    syncSummaryActive();
+    openModal(id);
+    renderCards();
+  }
+
+  const SAMPLE_DATA = [
+    { id:1,  name:'株式会社タナカ製作所',     industry:'製造業',    manager:'田中 健太', amount:380,  orders:12, delivery:98.5, quality:96.2, since:'2018/04/01' },
+    { id:2,  name:'東洋物流株式会社',         industry:'物流',      manager:'佐藤 美咲', amount:520,  orders:28, delivery:72.4, quality:81.3, since:'2021/07/01' },
+    { id:3,  name:'精密部品工業株式会社',     industry:'製造業',    manager:'鈴木 拓也', amount:890,  orders:35, delivery:99.1, quality:98.7, since:'2016/01/01' },
+    { id:4,  name:'グリーン建材株式会社',     industry:'建設・資材', manager:'高橋 由美', amount:310,  orders:8,  delivery:85.7, quality:88.4, since:'2022/04/01' },
+    { id:5,  name:'日本印刷サービス',         industry:'印刷',      manager:'渡辺 浩二', amount:160,  orders:22, delivery:96.8, quality:94.5, since:'2019/10/01' },
+    { id:6,  name:'アジア部品供給株式会社',   industry:'製造業',    manager:'伊藤 悠',   amount:450,  orders:18, delivery:61.3, quality:72.8, since:'2023/01/01' },
+    { id:7,  name:'山田電子工業株式会社',     industry:'電子部品',  manager:'山本 恵子', amount:720,  orders:40, delivery:97.5, quality:99.1, since:'2015/07/01' },
+    { id:8,  name:'中部運送株式会社',         industry:'物流',      manager:'中村 正志', amount:290,  orders:15, delivery:88.2, quality:90.6, since:'2020/04/01' },
+    { id:9,  name:'株式会社フジケミカル',     industry:'化学',      manager:'小林 千夏', amount:540,  orders:20, delivery:95.0, quality:96.8, since:'2017/01/01' },
+    { id:10, name:'新興テック株式会社',       industry:'IT機器',    manager:'加藤 俊介', amount:180,  orders:6,  delivery:58.3, quality:65.4, since:'2024/01/01' },
+    { id:11, name:'関西マシン株式会社',       industry:'機械',      manager:'吉田 幸子', amount:640,  orders:25, delivery:94.1, quality:92.3, since:'2018/10/01' },
+    { id:12, name:'デザインプリント株式会社', industry:'印刷',      manager:'山田 賢一', amount:120,  orders:30, delivery:99.6, quality:97.4, since:'2019/04/01' },
+    { id:13, name:'東南アジア貿易株式会社',   industry:'商社',      manager:'松本 亜矢', amount:870,  orders:14, delivery:79.5, quality:83.7, since:'2022/07/01' },
+    { id:14, name:'株式会社ハイテク素材',     industry:'素材',      manager:'井上 徹',   amount:430,  orders:19, delivery:96.3, quality:98.2, since:'2016/07/01' },
+    { id:15, name:'九州パーツ工業',           industry:'製造業',    manager:'木村 直樹', amount:260,  orders:11, delivery:65.8, quality:70.2, since:'2023/04/01' },
+    { id:16, name:'株式会社ゼロエミ包装',     industry:'包装',      manager:'林 智美',   amount:190,  orders:45, delivery:98.9, quality:95.6, since:'2020/01/01' },
+    { id:17, name:'北陸精工株式会社',         industry:'製造業',    manager:'清水 大輔', amount:780,  orders:32, delivery:93.7, quality:91.8, since:'2017/07/01' },
+    { id:18, name:'株式会社ミナトロジ',       industry:'物流',      manager:'森 裕子',   amount:350,  orders:20, delivery:84.1, quality:86.9, since:'2021/01/01' },
+    { id:19, name:'オリエント素材株式会社',   industry:'素材',      manager:'阿部 誠',   amount:500,  orders:16, delivery:71.2, quality:75.8, since:'2022/10/01' },
+    { id:20, name:'株式会社スマートファブ',   industry:'製造業',    manager:'石川 美穂', amount:920,  orders:38, delivery:97.8, quality:99.4, since:'2015/01/01' },
+  ];
+
+  let suppliers = [], isDemo = true, metric = 'delivery', filter = 'all', composite = false;
+  let modalSupplier = null, mTab = 'delivery';
+
+  window.addEventListener('DOMContentLoaded', () => loadData(SAMPLE_DATA, true));
+
+  function loadData(data, demo) {
+    suppliers = data; isDemo = demo;
+    document.getElementById('demo-label').style.display = demo ? 'inline' : 'none';
+    document.getElementById('updated-time').textContent =
+      new Date().toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    filter = 'all'; composite = false;
+    const co = document.getElementById('compound-overlay');
+    if (co) co.classList.remove('open');
+    const bc = document.getElementById('btn-comp');
+    if (bc) bc.classList.remove('active');
+    document.getElementById('search').value = '';
+    syncSummaryActive(); renderAll();
+  }
+
+  // 納期遵守率: 95%以上:緑, 85-94%:黄, 85%未満:赤
+  // 品質スコア: 90%以上:緑, 80-89%:黄, 80%未満:赤
+  function sig(val, m) {
+    if (m === 'delivery') return val >= 95 ? 'good' : val >= 85 ? 'warning' : 'danger';
+    return val >= 90 ? 'good' : val >= 80 ? 'warning' : 'danger';
+  }
+
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+  function handleFile(e) { if (e.target.files[0]) processFile(e.target.files[0]); }
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map((r, i) => ({
+        id: i+1, name: r['発注先名'] || `発注先${i+1}`,
+        industry: r['業種'] || '', manager: r['担当者'] || '',
+        amount: +r['発注金額(万円/月)'] || 0, orders: +r['発注件数'] || 0,
+        delivery: +r['納期遵守率(%)'] || 0, quality: +r['品質スコア(%)'] || 0,
+        since: r['取引開始'] || '—',
+      }));
+      dz.style.display = 'none'; document.getElementById('dashboard').style.display = 'block';
+      loadData(data, false);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  function backToDemo() { dz.style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadData(SAMPLE_DATA, true); }
+
+  function renderAll() { updateSummary(); renderCards(); }
+  function metricVal(s) { return metric === 'delivery' ? s.delivery : s.quality; }
+
+  function updateSummary() {
+    const c = { danger:0, warning:0, good:0 };
+    suppliers.forEach(s => c[sig(metricVal(s), metric)]++);
+    document.getElementById('cnt-all').textContent     = suppliers.length;
+    document.getElementById('cnt-danger').textContent  = c.danger;
+    document.getElementById('cnt-warning').textContent = c.warning;
+    document.getElementById('cnt-good').textContent    = c.good;
+  }
+
+  function renderCards() {
+    const q = document.getElementById('search').value.toLowerCase();
+    let list = suppliers.filter(s => !q || s.name.toLowerCase().includes(q) || s.industry.toLowerCase().includes(q) || s.manager.toLowerCase().includes(q));
+    if (composite) {
+      list = list.filter(s => sig(s.delivery,'delivery') === 'danger' && sig(s.quality,'quality') === 'danger');
+      document.getElementById('sec-title').textContent = `納期・品質 両方赤（${list.length}社）`;
+      buildCompoundListHacchu(list);
+      const co = document.getElementById('compound-overlay');
+      if (co) co.classList.add('open');
+      const grid = document.getElementById('card-grid');
+      grid.innerHTML = '<div class="no-results">一覧はポップアップで表示しています。</div>';
+      return;
+    }
+    const co0 = document.getElementById('compound-overlay');
+    if (co0) co0.classList.remove('open');
+    if (filter !== 'all') {
+      list = list.filter(s => sig(metricVal(s), metric) === filter);
+    }
+    const titles = { all:`全発注先の一覧（${list.length}社）`, danger:`⚠️ 危険 — 取引見直しが必要（${list.length}社）`, warning:`注意 — 要確認（${list.length}社）`, good:`問題なし（${list.length}社）` };
+    document.getElementById('sec-title').textContent = titles[filter];
+    const grid = document.getElementById('card-grid');
+    if (!list.length) { grid.innerHTML = '<div class="no-results">該当する発注先がありません</div>'; return; }
+    grid.innerHTML = list.map(s => {
+      const v = metricVal(s), sg = sig(v, metric);
+      return `<div class="c-card ${sg}" onclick="openModal(${s.id})">
+        <div class="c-top"><span class="c-id">No.${s.id}</span><span class="sig ${sg}"></span></div>
+        <div class="c-sub">${s.industry}</div>
+        <div class="c-name">${s.name}</div>
+        <div class="c-val ${sg}">${v.toFixed(1)}<span class="unit">%</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  function setMetric(m) {
+    metric = m;
+    document.getElementById('btn-dlv').classList.toggle('active', m === 'delivery');
+    document.getElementById('btn-qlt').classList.toggle('active', m === 'quality');
+    composite = false; document.getElementById('btn-comp').classList.remove('active');
+    renderAll();
+  }
+  function toggleComposite() {
+    composite = !composite;
+    document.getElementById('btn-comp').classList.toggle('active', composite);
+    if (!composite) {
+      const co = document.getElementById('compound-overlay');
+      if (co) co.classList.remove('open');
+    }
+    filter = 'all'; syncSummaryActive(); renderCards();
+  }
+  function setFilter(f) {
+    filter = f; composite = false; document.getElementById('btn-comp').classList.remove('active');
+    syncSummaryActive(); renderCards();
+  }
+  function syncSummaryActive() {
+    ['all','danger','warning','good'].forEach(f =>
+      document.getElementById(`sc-${f}`).classList.toggle('active', f === filter && !composite));
+  }
+
+  function openModal(id) {
+    modalSupplier = suppliers.find(s => s.id === id);
+    if (!modalSupplier) return;
+    mTab = 'delivery'; renderModal();
+    document.getElementById('overlay').classList.add('open');
+  }
+  function renderModal() {
+    const s = modalSupplier;
+    document.getElementById('m-tags').innerHTML =
+      `<span class="mtag">No.${s.id}</span>` +
+      (s.industry ? `<span class="mtag">${s.industry}</span>` : '') +
+      (s.manager  ? `<span class="mtag">担当：${s.manager}</span>` : '');
+    document.getElementById('m-name').textContent = s.name;
+    document.getElementById('mb-dlv').classList.toggle('active', mTab === 'delivery');
+    document.getElementById('mb-qlt').classList.toggle('active', mTab === 'quality');
+    document.getElementById('m-info').innerHTML =
+      `<span class="modal-info-lbl">取引開始</span><span>${s.since}</span>`;
+    if (mTab === 'delivery') {
+      const sg = sig(s.delivery,'delivery');
+      document.getElementById('m-metrics').innerHTML = `
+        <div class="mmetric bg-${sg}"><div class="mm-lbl">納期遵守率</div><div class="mm-val ${sg}">${s.delivery.toFixed(1)}<span class="u">%</span></div></div>
+        <div class="mmetric bg-neutral"><div class="mm-lbl">品質スコア</div><div class="mm-val ${sig(s.quality,'quality')}">${s.quality.toFixed(1)}<span class="u">%</span></div></div>
+        <div class="mmetric bg-neutral"><div class="mm-lbl">発注金額（月）</div><div class="mm-val orange">${s.amount.toLocaleString()}<span class="u"> 万円</span></div></div>
+        <div class="mmetric bg-neutral"><div class="mm-lbl">発注件数（月）</div><div class="mm-val gray">${s.orders}<span class="u"> 件</span></div></div>`;
+    } else {
+      const sg = sig(s.quality,'quality');
+      document.getElementById('m-metrics').innerHTML = `
+        <div class="mmetric bg-${sg}"><div class="mm-lbl">品質スコア</div><div class="mm-val ${sg}">${s.quality.toFixed(1)}<span class="u">%</span></div></div>
+        <div class="mmetric bg-neutral"><div class="mm-lbl">納期遵守率</div><div class="mm-val ${sig(s.delivery,'delivery')}">${s.delivery.toFixed(1)}<span class="u">%</span></div></div>
+        <div class="mmetric bg-neutral"><div class="mm-lbl">発注金額（月）</div><div class="mm-val orange">${s.amount.toLocaleString()}<span class="u"> 万円</span></div></div>
+        <div class="mmetric bg-neutral"><div class="mm-lbl">発注件数（月）</div><div class="mm-val gray">${s.orders}<span class="u"> 件</span></div></div>`;
+    }
+  }
+  function setMTab(t) { mTab = t; renderModal(); }
+  function maybeClose(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+  function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+</script>
+</body>
+</html>
