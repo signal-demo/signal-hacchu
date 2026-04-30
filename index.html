@@ -175,6 +175,12 @@
     .mm-val.danger  { color: #ef4444; }
     .mm-val.orange  { color: #ea580c; }
     .mm-val.gray    { color: #374151; }
+    @media (max-width: 640px) {
+      .header { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
+      .header-left { width: 100%; }
+      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
+      .updated { display: none; }
+    }
   </style>
 </head>
 <body>
