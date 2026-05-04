@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ビジネスシグナル | 発注先</title>
-  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif; background: #f5f7fa; color: #2c3e50; min-height: 100vh; }
+
     #drop-zone {
       display: none; flex-direction: column; align-items: center; justify-content: center;
       min-height: 100vh; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
@@ -38,6 +39,7 @@
     .tog-btn.active { background: white; color: #ea580c; font-weight: 700; }
     .risk-btn { background: rgba(255,255,255,0.14); border: none; color: white; padding: 5px 13px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
     .risk-btn.active { background: rgba(239,68,68,0.75); }
+    .risk-dot { color: #f87171; }
     .updated { font-size: 10px; opacity: 0.65; text-align: right; line-height: 1.5; }
 
     .main { padding: 24px 28px; max-width: 1440px; margin: 0 auto; }
@@ -48,7 +50,8 @@
     .summary-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 22px; }
     .sum-card { background: white; border-radius: 12px; padding: 18px 20px; border: 1.5px solid #e5e7eb; cursor: pointer; transition: all 0.15s; }
     .sum-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-    .sum-card.active { border-color: #ea580c; box-shadow: 0 2px 12px rgba(234,88,12,0.15); }
+    .sum-card:focus { outline: 2px solid #ea580c; outline-offset: 2px; }
+    .sum-card.active { border-color: #ea580c; box-shadow: 0 2px 12px rgba(234,88,12,0.15); background: #fff7ed; }
     .sum-card.s-total  { border-left: 4px solid #ea580c; }
     .sum-card.s-danger { border-left: 4px solid #ef4444; }
     .sum-card.s-warn   { border-left: 4px solid #f59e0b; }
@@ -57,7 +60,7 @@
     .sum-num { font-size: 32px; font-weight: 700; line-height: 1; }
     .sum-num.c-total  { color: #ea580c; }
     .sum-num.c-danger { color: #ef4444; }
-    .sum-num.c-warn   { color: #f59e0b; }
+    .sum-num.c-warn   { color: #d97706; }
     .sum-num.c-good   { color: #10b981; }
     .sum-unit { font-size: 13px; font-weight: 400; color: #9ca3af; margin-left: 3px; }
 
@@ -69,6 +72,7 @@
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 13px; }
     .c-card { background: white; border-radius: 12px; padding: 16px; border: 1.5px solid #e5e7eb; cursor: pointer; transition: all 0.15s; }
     .c-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .c-card:focus { outline: 2px solid #ea580c; outline-offset: 2px; box-shadow: 0 4px 14px rgba(0,0,0,0.1); transform: translateY(-2px); }
     .c-card.danger  { border-color: #fecaca; }
     .c-card.warning { border-color: #fde68a; }
     .c-card.good    { border-color: #a7f3d0; }
@@ -80,19 +84,18 @@
     .sig.good    { background: #10b981; }
     .c-sub { font-size: 10px; color: #9ca3af; margin-bottom: 4px; }
     .c-name { font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .c-val { font-size: 26px; font-weight: 700; line-height: 1; }
+    .c-val { font-size: 22px; font-weight: 700; line-height: 1; }
     .c-val .unit { font-size: 13px; font-weight: 400; }
     .c-val.danger  { color: #ef4444; }
-    .c-val.warning { color: #f59e0b; }
+    .c-val.warning { color: #d97706; }
     .c-val.good    { color: #10b981; }
     .no-results { text-align: center; padding: 60px 20px; color: #9ca3af; grid-column: 1 / -1; font-size: 14px; }
 
     .signal-rules { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 16px 14px; margin-bottom: 14px; }
     .signal-rules-title { font-size: 12px; font-weight: 700; color: #1e293b; margin: 0 0 8px; letter-spacing: 0.02em; }
     .signal-rules-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media (max-width: 700px) { .signal-rules-cols { grid-template-columns: 1fr; } }
-    .rule-block { font-size: 11px; color: #475569; line-height: 1.45; }
-    .rule-h { font-weight: 600; color: #334155; margin-bottom: 5px; font-size: 11px; }
+    .rule-block { font-size: 12px; color: #475569; line-height: 1.45; }
+    .rule-h { font-weight: 600; color: #334155; margin-bottom: 5px; font-size: 12px; }
     .rule-h .rule-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
     .rule-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 1px 0; }
     .r-red { color: #b91c1c; font-weight: 600; }
@@ -125,7 +128,7 @@
       position: relative; background: #fff1f1; padding: 20px 20px 16px; flex-shrink: 0; border-radius: 12px 12px 0 0;
     }
     .compound-close {
-      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: none; border-radius: 50%;
+      position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border: none; border-radius: 50%;
       background: transparent; color: #9ca3af; font-size: 16px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
     }
@@ -142,17 +145,18 @@
       transition: background 0.15s, border-color 0.15s;
     }
     .cr-item:last-child { margin-bottom: 0; }
-    .cr-item:hover { background: #ffeded; border-color: #f87171; }
+    .cr-item:hover, .cr-item:focus { background: #ffeded; border-color: #f87171; outline: none; }
     .cr-left { min-width: 0; flex: 1; }
     .cr-id { font-size: 10px; color: #9ca3af; margin-bottom: 2px; }
     .cr-name { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.3; word-break: break-word; }
     .cr-addr { font-size: 12px; color: #6b7280; margin-top: 3px; display: flex; align-items: flex-start; gap: 3px; }
     .cr-metric { text-align: right; font-size: 14px; font-weight: 600; color: #dc2626; line-height: 1.35; }
 
-    .overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.48); z-index: 200; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; pointer-events: none; }
+    .overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.48); z-index: 400; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; pointer-events: none; }
     .overlay.open { visibility: visible; opacity: 1; pointer-events: auto; }
     .modal { background: white; border-radius: 16px; width: 480px; max-width: 92vw; max-height: 88vh; overflow-y: auto; padding: 26px; position: relative; flex-shrink: 0; }
-    .modal-close { position: absolute; top: 14px; right: 14px; background: #f3f4f6; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+    .modal-close { position: absolute; top: 14px; right: 14px; background: #f3f4f6; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: #e5e7eb; }
     .modal-tags { display: flex; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
     .mtag { background: #f3f4f6; border-radius: 20px; padding: 3px 11px; font-size: 12px; color: #6b7280; }
     .modal-name { font-size: 21px; font-weight: 700; margin-bottom: 18px; line-height: 1.3; }
@@ -171,39 +175,11 @@
     .mm-val { font-size: 24px; font-weight: 700; }
     .mm-val .u { font-size: 13px; font-weight: 400; margin-left: 1px; }
     .mm-val.good    { color: #10b981; }
-    .mm-val.warning { color: #f59e0b; }
+    .mm-val.warning { color: #d97706; }
     .mm-val.danger  { color: #ef4444; }
     .mm-val.orange  { color: #ea580c; }
     .mm-val.gray    { color: #374151; }
-    @media (max-width: 640px) {
-      .header { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
-      .header-left { width: 100%; }
-      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
-      .updated { display: none; }
-    }
-  
-    @media (max-width: 640px) {
-      .header {
-        height: auto;
-        flex-wrap: wrap;
-        padding: 8px 12px;
-        gap: 6px;
-      }
-      .header-left {
-        width: 100%;
-        justify-content: flex-start;
-      }
-      .header-title { font-size: 14px; }
-      .header-right {
-        width: 100%;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .tog-btn { padding: 5px 9px; font-size: 12px; }
-      .risk-btn { padding: 5px 9px; font-size: 12px; }
-      .updated { display: none; }
-    }
-  
+
     .criteria-bar {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
@@ -212,9 +188,25 @@
     .criteria-label { font-weight: 700; color: #1e293b; white-space: nowrap; }
     .criteria-sep { color: #94a3b8; }
     .c-red   { color: #ef4444; font-weight: 600; }
-    .c-amber { color: #f59e0b; font-weight: 600; }
+    .c-amber { color: #b45309; font-weight: 600; }
     .c-grn   { color: #10b981; font-weight: 600; }
     .c-div   { color: #cbd5e1; margin: 0 6px; }
+
+    @media (max-width: 640px) {
+      .header { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
+      .header-left { width: 100%; justify-content: flex-start; }
+      .header-title { font-size: 14px; }
+      .header-right { width: 100%; flex-wrap: wrap; gap: 6px; }
+      .tog-btn { padding: 5px 9px; font-size: 12px; }
+      .risk-btn { padding: 5px 9px; font-size: 12px; }
+      .updated { display: none; }
+      .main { padding: 16px; }
+      .search-input { width: 100%; }
+      .summary-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 700px) {
+      .signal-rules-cols { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -254,7 +246,7 @@
         <button class="tog-btn" onclick="setMetric('quality')" id="btn-qlt">品質スコア</button>
       </div>
       <button class="risk-btn" onclick="toggleComposite()" id="btn-comp">
-        <span style="color:#f87171">●</span> 複合リスク
+        <span class="risk-dot" aria-hidden="true">●</span> 複合リスク
       </button>
       <div class="updated">最終更新<br><span id="updated-time"></span></div>
     </div>
@@ -262,32 +254,32 @@
 
   <div class="main">
     <div class="search-wrap">
-      <input class="search-input" id="search" type="text" placeholder="🔍 発注先名・業種・担当者で検索" oninput="renderCards()">
+      <input class="search-input" id="search" type="text" placeholder="🔍 発注先名・業種・担当者で検索" aria-label="発注先を検索">
     </div>
     <div class="summary-row">
-      <div class="sum-card s-total active" onclick="setFilter('all')" id="sc-all">
+      <div class="sum-card s-total active" onclick="setFilter('all')" id="sc-all" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('all')}">
         <div class="sum-label">🏭 全発注先数</div>
         <div><span class="sum-num c-total" id="cnt-all">0</span><span class="sum-unit">社</span></div>
       </div>
-      <div class="sum-card s-danger" onclick="setFilter('danger')" id="sc-danger">
-        <div class="sum-label"><span style="color:#ef4444">●</span> 危険</div>
+      <div class="sum-card s-danger" onclick="setFilter('danger')" id="sc-danger" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('danger')}">
+        <div class="sum-label"><span aria-hidden="true" style="color:#ef4444">●</span> 危険</div>
         <div><span class="sum-num c-danger" id="cnt-danger">0</span><span class="sum-unit">社</span></div>
       </div>
-      <div class="sum-card s-warn" onclick="setFilter('warning')" id="sc-warning">
-        <div class="sum-label"><span style="color:#f59e0b">●</span> 注意</div>
+      <div class="sum-card s-warn" onclick="setFilter('warning')" id="sc-warning" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('warning')}">
+        <div class="sum-label"><span aria-hidden="true" style="color:#f59e0b">●</span> 注意</div>
         <div><span class="sum-num c-warn" id="cnt-warning">0</span><span class="sum-unit">社</span></div>
       </div>
-      <div class="sum-card s-good" onclick="setFilter('good')" id="sc-good">
-        <div class="sum-label"><span style="color:#10b981">●</span> 問題なし</div>
+      <div class="sum-card s-good" onclick="setFilter('good')" id="sc-good" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('good')}">
+        <div class="sum-label"><span aria-hidden="true" style="color:#10b981">●</span> 問題なし</div>
         <div><span class="sum-num c-good" id="cnt-good">0</span><span class="sum-unit">社</span></div>
       </div>
     </div>
     <div class="criteria-bar">
-  <span class="criteria-label">判定基準</span>
-  <span class="criteria-sep">—</span>
-  <span id="criteria-content"></span>
-</div>
-<div class="section-header">
+      <span class="criteria-label">判定基準</span>
+      <span class="criteria-sep">—</span>
+      <span id="criteria-content"></span>
+    </div>
+    <div class="section-header">
       <span class="section-title" id="sec-title">全発注先の一覧</span>
       <div class="legend">
         <span><span class="ldot" style="background:#ef4444"></span>危険</span>
@@ -300,8 +292,8 @@
 </div>
 
 <div class="overlay" id="overlay" onclick="maybeClose(event)">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-name">
+    <button class="modal-close" onclick="closeModal()" aria-label="閉じる">✕</button>
     <div class="modal-tags" id="m-tags"></div>
     <div class="modal-name" id="m-name"></div>
     <div class="modal-toggle">
@@ -314,7 +306,7 @@
 </div>
 
 <div class="compound-overlay" id="compound-overlay" onclick="maybeCloseCompound(event)">
-  <div class="compound-panel" onclick="event.stopPropagation()">
+  <div class="compound-panel" role="dialog" aria-modal="true" aria-labelledby="compound-h1" onclick="event.stopPropagation()">
     <div class="compound-header">
       <button type="button" class="compound-close" onclick="closeCompoundModal()" aria-label="閉じる">✕</button>
       <div class="compound-h1">
@@ -331,9 +323,31 @@
 
 <script>
   function __escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  const THRESHOLDS = {
+    delivery: { green: 95, yellow: 85 },
+    quality:  { green: 90, yellow: 80 },
+  };
+
+  function sig(val, m) {
+    const t = THRESHOLDS[m];
+    return val >= t.green ? 'good' : val >= t.yellow ? 'warning' : 'danger';
+  }
+
+  function buildCriteriaHTML(m) {
+    const t = THRESHOLDS[m];
+    return `<span class="c-red">● 赤: ${t.yellow}%未満</span>　<span class="c-amber">● 黄: ${t.yellow}%以上${t.green}%未満</span>　<span class="c-grn">● 緑: ${t.green}%以上</span>`;
+  }
+
+  function updateCriteria(m) {
+    const el = document.getElementById('criteria-content');
+    if (el) el.innerHTML = buildCriteriaHTML(m);
+  }
+
   function buildCompoundListHacchu(list) {
     document.getElementById('compound-h1').textContent = '納期・品質 両方赤の発注先';
-    document.getElementById('compound-sub').textContent = '納期が危険（85%未満）かつ 品質が危険（80%未満）';
+    document.getElementById('compound-sub').textContent =
+      `納期が危険（${THRESHOLDS.delivery.yellow}%未満）かつ 品質が危険（${THRESHOLDS.quality.yellow}%未満）`;
     const el = document.getElementById('compound-list');
     if (!el) return;
     if (!list.length) {
@@ -341,7 +355,9 @@
       return;
     }
     el.innerHTML = list.map(s => `
-      <div class="cr-item" role="button" onclick="openFromComposite(${s.id})">
+      <div class="cr-item" role="button" tabindex="0"
+        onclick="openFromComposite(${s.id})"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openFromComposite(${s.id})}">
         <div class="cr-left">
           <div class="cr-id">No.${s.id}</div>
           <div class="cr-name">${__escH(s.name)}</div>
@@ -353,6 +369,7 @@
         </div>
       </div>`).join('');
   }
+
   function closeCompoundModal() {
     const o = document.getElementById('compound-overlay');
     if (o) o.classList.remove('open');
@@ -363,14 +380,7 @@
   }
   function maybeCloseCompound(e) { if (e.target === document.getElementById('compound-overlay')) closeCompoundModal(); }
   function openFromComposite(id) {
-    const o = document.getElementById('compound-overlay');
-    if (o) o.classList.remove('open');
-    composite = false;
-    const b = document.getElementById('btn-comp');
-    if (b) b.classList.remove('active');
-    syncSummaryActive();
     openModal(id);
-    renderCards();
   }
 
   const SAMPLE_DATA = [
@@ -396,14 +406,28 @@
     { id:20, name:'株式会社スマートファブ',   industry:'製造業',    manager:'石川 美穂', amount:920,  orders:38, delivery:97.8, quality:99.4, since:'2015/01/01' },
   ];
 
-  let suppliers = [], isDemo = true, metric = 'delivery', filter = 'all', composite = false;
+  let suppliers = [], metric = 'delivery', filter = 'all', composite = false;
   let modalSupplier = null, mTab = 'delivery';
+  let searchTimer;
 
-  window.addEventListener('DOMContentLoaded', () => loadData(SAMPLE_DATA, true));
+  const STATUS_LABEL = { good: '問題なし', warning: '注意', danger: '危険' };
 
-  function loadData(data, demo) {
-    suppliers = data; isDemo = demo;
-    document.getElementById('demo-label').style.display = demo ? 'inline' : 'none';
+  function showView(view) {
+    document.getElementById('drop-zone').style.display = view === 'dropzone' ? 'flex' : 'none';
+    document.getElementById('dashboard').style.display = view === 'dashboard' ? 'block' : 'none';
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('search').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderCards, 300);
+    });
+    updateCriteria('delivery');
+    loadData(SAMPLE_DATA);
+  });
+
+  function loadData(data) {
+    suppliers = data;
     document.getElementById('updated-time').textContent =
       new Date().toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
     filter = 'all'; composite = false;
@@ -415,13 +439,6 @@
     syncSummaryActive(); renderAll();
   }
 
-  // 納期遵守率: 95%以上:緑, 85-94%:黄, 85%未満:赤
-  // 品質スコア: 90%以上:緑, 80-89%:黄, 80%未満:赤
-  function sig(val, m) {
-    if (m === 'delivery') return val >= 95 ? 'good' : val >= 85 ? 'warning' : 'danger';
-    return val >= 90 ? 'good' : val >= 80 ? 'warning' : 'danger';
-  }
-
   const dz = document.getElementById('drop-zone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -429,21 +446,32 @@
   function handleFile(e) { if (e.target.files[0]) processFile(e.target.files[0]); }
   function processFile(file) {
     const reader = new FileReader();
-    reader.onload = e => {
-      const wb = XLSX.read(e.target.result, { type: 'array' });
-      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map((r, i) => ({
-        id: i+1, name: r['発注先名'] || `発注先${i+1}`,
-        industry: r['業種'] || '', manager: r['担当者'] || '',
-        amount: +r['発注金額(万円/月)'] || 0, orders: +r['発注件数'] || 0,
-        delivery: +r['納期遵守率(%)'] || 0, quality: +r['品質スコア(%)'] || 0,
-        since: r['取引開始'] || '—',
-      }));
-      dz.style.display = 'none'; document.getElementById('dashboard').style.display = 'block';
-      loadData(data, false);
+    reader.onload = evt => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map((r, i) => ({
+          id: i+1, name: r['発注先名'] || `発注先${i+1}`,
+          industry: r['業種'] || '', manager: r['担当者'] || '',
+          amount: +r['発注金額(万円/月)'] || 0, orders: +r['発注件数'] || 0,
+          delivery: +r['納期遵守率(%)'] || 0, quality: +r['品質スコア(%)'] || 0,
+          since: r['取引開始'] || '—',
+        }));
+        showView('dashboard');
+        document.getElementById('demo-label').style.display = 'none';
+        loadData(data);
+      } catch (err) {
+        alert('ファイルの読み込みに失敗しました。Excelファイルの形式を確認してください。');
+        console.error(err);
+      }
     };
+    reader.onerror = () => alert('ファイルの読み取り中にエラーが発生しました。');
     reader.readAsArrayBuffer(file);
   }
-  function backToDemo() { dz.style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadData(SAMPLE_DATA, true); }
+  function backToDemo() {
+    showView('dashboard');
+    document.getElementById('demo-label').style.display = 'inline';
+    loadData(SAMPLE_DATA);
+  }
 
   function renderAll() { updateSummary(); renderCards(); }
   function metricVal(s) { return metric === 'delivery' ? s.delivery : s.quality; }
@@ -466,8 +494,7 @@
       buildCompoundListHacchu(list);
       const co = document.getElementById('compound-overlay');
       if (co) co.classList.add('open');
-      const grid = document.getElementById('card-grid');
-      grid.innerHTML = '<div class="no-results">一覧はポップアップで表示しています。</div>';
+      document.getElementById('card-grid').innerHTML = '<div class="no-results">一覧はポップアップで表示しています。</div>';
       return;
     }
     const co0 = document.getElementById('compound-overlay');
@@ -475,28 +502,30 @@
     if (filter !== 'all') {
       list = list.filter(s => sig(metricVal(s), metric) === filter);
     }
-    const titles = { all:`全発注先の一覧（${list.length}社）`, danger:`⚠️ 危険 — 取引見直しが必要（${list.length}社）`, warning:`注意 — 要確認（${list.length}社）`, good:`問題なし（${list.length}社）` };
+    const titles = {
+      all:     `全発注先の一覧（${list.length}社）`,
+      danger:  `⚠️ 危険 — 取引見直しが必要（${list.length}社）`,
+      warning: `注意 — 要確認（${list.length}社）`,
+      good:    `問題なし（${list.length}社）`,
+    };
     document.getElementById('sec-title').textContent = titles[filter];
     const grid = document.getElementById('card-grid');
     if (!list.length) { grid.innerHTML = '<div class="no-results">該当する発注先がありません</div>'; return; }
     grid.innerHTML = list.map(s => {
       const v = metricVal(s), sg = sig(v, metric);
-      return `<div class="c-card ${sg}" onclick="openModal(${s.id})">
-        <div class="c-top"><span class="c-id">No.${s.id}</span><span class="sig ${sg}"></span></div>
-        <div class="c-sub">${s.industry}</div>
-        <div class="c-name">${s.name}</div>
+      return `<div class="c-card ${sg}"
+        role="button" tabindex="0"
+        aria-label="${__escH(s.name)} ${v.toFixed(1)}% ${STATUS_LABEL[sg]}"
+        onclick="openModal(${s.id})"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openModal(${s.id})}">
+        <div class="c-top"><span class="c-id">No.${s.id}</span><span class="sig ${sg}" aria-label="${STATUS_LABEL[sg]}"></span></div>
+        <div class="c-sub">${__escH(s.industry)}</div>
+        <div class="c-name">${__escH(s.name)}</div>
         <div class="c-val ${sg}">${v.toFixed(1)}<span class="unit">%</span></div>
       </div>`;
     }).join('');
   }
 
-  
-  const CRITERIA = {"delivery":"<span class=\"c-red\">● 赤: 85%未満</span>　<span class=\"c-amber\">● 黄: 85〜94%</span>　<span class=\"c-grn\">● 緑: 95%以上</span>","quality":"<span class=\"c-red\">● 赤: 80%未満</span>　<span class=\"c-amber\">● 黄: 80〜89%</span>　<span class=\"c-grn\">● 緑: 90%以上</span>"};
-  function updateCriteria(m) {
-    const el = document.getElementById('criteria-content');
-    if (el && CRITERIA[m]) el.innerHTML = CRITERIA[m];
-  }
-  updateCriteria('delivery');
   function setMetric(m) {
     updateCriteria(m);
     metric = m;
@@ -528,37 +557,40 @@
     if (!modalSupplier) return;
     mTab = 'delivery'; renderModal();
     document.getElementById('overlay').classList.add('open');
+    requestAnimationFrame(() => document.querySelector('.modal-close').focus());
   }
   function renderModal() {
     const s = modalSupplier;
     document.getElementById('m-tags').innerHTML =
       `<span class="mtag">No.${s.id}</span>` +
-      (s.industry ? `<span class="mtag">${s.industry}</span>` : '') +
-      (s.manager  ? `<span class="mtag">担当：${s.manager}</span>` : '');
+      (s.industry ? `<span class="mtag">${__escH(s.industry)}</span>` : '') +
+      (s.manager  ? `<span class="mtag">担当：${__escH(s.manager)}</span>` : '');
     document.getElementById('m-name').textContent = s.name;
     document.getElementById('mb-dlv').classList.toggle('active', mTab === 'delivery');
     document.getElementById('mb-qlt').classList.toggle('active', mTab === 'quality');
     document.getElementById('m-info').innerHTML =
-      `<span class="modal-info-lbl">取引開始</span><span>${s.since}</span>`;
-    if (mTab === 'delivery') {
-      const sg = sig(s.delivery,'delivery');
-      document.getElementById('m-metrics').innerHTML = `
-        <div class="mmetric bg-${sg}"><div class="mm-lbl">納期遵守率</div><div class="mm-val ${sg}">${s.delivery.toFixed(1)}<span class="u">%</span></div></div>
-        <div class="mmetric bg-neutral"><div class="mm-lbl">品質スコア</div><div class="mm-val ${sig(s.quality,'quality')}">${s.quality.toFixed(1)}<span class="u">%</span></div></div>
-        <div class="mmetric bg-neutral"><div class="mm-lbl">発注金額（月）</div><div class="mm-val orange">${s.amount.toLocaleString()}<span class="u"> 万円</span></div></div>
-        <div class="mmetric bg-neutral"><div class="mm-lbl">発注件数（月）</div><div class="mm-val gray">${s.orders}<span class="u"> 件</span></div></div>`;
-    } else {
-      const sg = sig(s.quality,'quality');
-      document.getElementById('m-metrics').innerHTML = `
-        <div class="mmetric bg-${sg}"><div class="mm-lbl">品質スコア</div><div class="mm-val ${sg}">${s.quality.toFixed(1)}<span class="u">%</span></div></div>
-        <div class="mmetric bg-neutral"><div class="mm-lbl">納期遵守率</div><div class="mm-val ${sig(s.delivery,'delivery')}">${s.delivery.toFixed(1)}<span class="u">%</span></div></div>
-        <div class="mmetric bg-neutral"><div class="mm-lbl">発注金額（月）</div><div class="mm-val orange">${s.amount.toLocaleString()}<span class="u"> 万円</span></div></div>
-        <div class="mmetric bg-neutral"><div class="mm-lbl">発注件数（月）</div><div class="mm-val gray">${s.orders}<span class="u"> 件</span></div></div>`;
-    }
+      `<span class="modal-info-lbl">取引開始</span><span>${__escH(String(s.since))}</span>`;
+    const entries = mTab === 'delivery'
+      ? [{ label:'納期遵守率', val:s.delivery, m:'delivery', hl:true  }, { label:'品質スコア', val:s.quality,  m:'quality',  hl:false }]
+      : [{ label:'品質スコア', val:s.quality,  m:'quality',  hl:true  }, { label:'納期遵守率', val:s.delivery, m:'delivery', hl:false }];
+    document.getElementById('m-metrics').innerHTML =
+      entries.map(e => {
+        const sg = sig(e.val, e.m);
+        return `<div class="mmetric ${e.hl ? `bg-${sg}` : 'bg-neutral'}"><div class="mm-lbl">${e.label}</div><div class="mm-val ${sg}">${e.val.toFixed(1)}<span class="u">%</span></div></div>`;
+      }).join('') +
+      `<div class="mmetric bg-neutral"><div class="mm-lbl">発注金額（月）</div><div class="mm-val orange">${s.amount.toLocaleString()}<span class="u"> 万円</span></div></div>` +
+      `<div class="mmetric bg-neutral"><div class="mm-lbl">発注件数（月）</div><div class="mm-val gray">${s.orders}<span class="u"> 件</span></div></div>`;
   }
   function setMTab(t) { mTab = t; renderModal(); }
   function maybeClose(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
   function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('overlay').classList.contains('open')) closeModal();
+      else if (document.getElementById('compound-overlay').classList.contains('open')) closeCompoundModal();
+    }
+  });
 </script>
 </body>
 </html>
