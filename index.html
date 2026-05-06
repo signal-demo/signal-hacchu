@@ -28,19 +28,22 @@
     #file-input { display: none; }
 
     #dashboard { display: block; }
-    .header { background: #ea580c; color: white; padding: 0 24px; height: 54px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
-    .header-left { display: flex; align-items: center; gap: 9px; }
-    .header-icon { font-size: 19px; }
-    .header-title { font-size: 16px; font-weight: 700; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    .demo-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35); color: white; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.05em; }
-    .toggle-group { display: flex; background: rgba(255,255,255,0.14); border-radius: 8px; padding: 3px; gap: 2px; }
-    .tog-btn { background: transparent; border: none; color: rgba(255,255,255,0.8); padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-    .tog-btn.active { background: white; color: #ea580c; font-weight: 700; }
-    .risk-btn { background: rgba(255,255,255,0.14); border: none; color: white; padding: 5px 13px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-    .risk-btn.active { background: rgba(239,68,68,0.75); }
-    .risk-dot { color: #f87171; }
-    .updated { font-size: 10px; opacity: 0.65; text-align: right; line-height: 1.5; }
+    .page-header { background: #ea580c; padding: 12px 28px 10px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+    .ph-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .ph-left { display: flex; align-items: center; gap: 8px; }
+    .ph-icon { font-size: 20px; }
+    .ph-title { font-size: 17px; font-weight: 700; color: white; }
+    .ph-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35); color: white; font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.05em; }
+    .ph-right { display: flex; align-items: center; gap: 12px; }
+    .ph-updated { font-size: 11px; color: rgba(255,255,255,0.7); text-align: right; line-height: 1.6; }
+    .ph-upload-btn { background: white; color: #ea580c; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; transition: background 0.15s; }
+    .ph-upload-btn:hover { background: #fff7ed; }
+    .ph-tags { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .metric-tag { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.85); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .metric-tag:hover { background: rgba(255,255,255,0.25); }
+    .metric-tag.active { background: white; border-color: white; color: #ea580c; font-weight: 700; }
+    .risk-tag { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.85); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .risk-tag.active { background: rgba(239,68,68,0.75); border-color: rgba(239,68,68,0.5); color: white; }
 
     .main { padding: 24px 28px; max-width: 1440px; margin: 0 auto; }
     .search-wrap { margin-bottom: 16px; }
@@ -180,26 +183,20 @@
     .mm-val.orange  { color: #ea580c; }
     .mm-val.gray    { color: #374151; }
 
-    .criteria-bar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-      padding: 10px 16px; font-size: 13px; color: #475569; margin-bottom: 18px;
-    }
-    .criteria-label { font-weight: 700; color: #1e293b; white-space: nowrap; }
-    .criteria-sep { color: #94a3b8; }
+    .inline-criteria { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #475569; }
+    .inline-criteria-lbl { font-weight: 700; color: #1e293b; white-space: nowrap; }
     .c-red   { color: #ef4444; font-weight: 600; }
     .c-amber { color: #b45309; font-weight: 600; }
     .c-grn   { color: #10b981; font-weight: 600; }
-    .c-div   { color: #cbd5e1; margin: 0 6px; }
 
     @media (max-width: 640px) {
-      .header { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
-      .header-left { width: 100%; justify-content: flex-start; }
-      .header-title { font-size: 14px; }
-      .header-right { width: 100%; flex-wrap: wrap; gap: 6px; }
-      .tog-btn { padding: 5px 9px; font-size: 12px; }
-      .risk-btn { padding: 5px 9px; font-size: 12px; }
-      .updated { display: none; }
+      .page-header { padding: 10px 16px 8px; }
+      .ph-top { flex-wrap: wrap; gap: 8px; }
+      .ph-right { width: 100%; justify-content: space-between; }
+      .ph-updated { display: none; }
+      .ph-tags { gap: 6px; }
+      .metric-tag { padding: 5px 10px; font-size: 12px; }
+      .risk-tag { padding: 5px 10px; font-size: 12px; }
       .main { padding: 16px; }
       .search-input { width: 100%; }
       .summary-row { grid-template-columns: 1fr 1fr; }
@@ -234,21 +231,24 @@
 </div>
 
 <div id="dashboard">
-  <div class="header">
-    <div class="header-left">
-      <span class="header-icon">🏭</span>
-      <span class="header-title">ビジネスシグナル | 発注先</span>
-      <span class="demo-badge" id="demo-label">SAMPLE</span>
-    </div>
-    <div class="header-right">
-      <div class="toggle-group">
-        <button class="tog-btn active" onclick="setMetric('delivery')" id="btn-dlv">納期遵守率</button>
-        <button class="tog-btn" onclick="setMetric('quality')" id="btn-qlt">品質スコア</button>
+  <div class="page-header">
+    <div class="ph-top">
+      <div class="ph-left">
+        <span class="ph-icon">🏭</span>
+        <span class="ph-title">ビジネスシグナル | 発注先</span>
+        <span class="ph-badge" id="demo-label">SAMPLE</span>
       </div>
-      <button class="risk-btn" onclick="toggleComposite()" id="btn-comp">
-        <span class="risk-dot" aria-hidden="true">●</span> 複合リスク
+      <div class="ph-right">
+        <div class="ph-updated">最終更新<br><span id="updated-time"></span></div>
+        <button class="ph-upload-btn" onclick="showDropZone()">↑ Excelをアップロード</button>
+      </div>
+    </div>
+    <div class="ph-tags">
+      <button class="metric-tag active" onclick="setMetric('delivery')" id="btn-dlv">📦 納期遵守率</button>
+      <button class="metric-tag" onclick="setMetric('quality')" id="btn-qlt">⭐ 品質スコア</button>
+      <button class="risk-tag" onclick="toggleComposite()" id="btn-comp">
+        <span style="color:#ef4444">●</span> 複合リスク <span id="comp-count"></span>
       </button>
-      <div class="updated">最終更新<br><span id="updated-time"></span></div>
     </div>
   </div>
 
@@ -262,29 +262,23 @@
         <div><span class="sum-num c-total" id="cnt-all">0</span><span class="sum-unit">社</span></div>
       </div>
       <div class="sum-card s-danger" onclick="setFilter('danger')" id="sc-danger" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('danger')}">
-        <div class="sum-label"><span aria-hidden="true" style="color:#ef4444">●</span> 危険</div>
+        <div class="sum-label"><span aria-hidden="true" style="color:#ef4444">●</span> <span id="sl-danger">危険</span></div>
         <div><span class="sum-num c-danger" id="cnt-danger">0</span><span class="sum-unit">社</span></div>
       </div>
       <div class="sum-card s-warn" onclick="setFilter('warning')" id="sc-warning" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('warning')}">
-        <div class="sum-label"><span aria-hidden="true" style="color:#f59e0b">●</span> 注意</div>
+        <div class="sum-label"><span aria-hidden="true" style="color:#f59e0b">●</span> <span id="sl-warning">注意</span></div>
         <div><span class="sum-num c-warn" id="cnt-warning">0</span><span class="sum-unit">社</span></div>
       </div>
       <div class="sum-card s-good" onclick="setFilter('good')" id="sc-good" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setFilter('good')}">
-        <div class="sum-label"><span aria-hidden="true" style="color:#10b981">●</span> 問題なし</div>
+        <div class="sum-label"><span aria-hidden="true" style="color:#10b981">●</span> <span id="sl-good">問題なし</span></div>
         <div><span class="sum-num c-good" id="cnt-good">0</span><span class="sum-unit">社</span></div>
       </div>
     </div>
-    <div class="criteria-bar">
-      <span class="criteria-label">判定基準</span>
-      <span class="criteria-sep">—</span>
-      <span id="criteria-content"></span>
-    </div>
     <div class="section-header">
       <span class="section-title" id="sec-title">全発注先の一覧</span>
-      <div class="legend">
-        <span><span class="ldot" style="background:#ef4444"></span>危険</span>
-        <span><span class="ldot" style="background:#f59e0b"></span>注意</span>
-        <span><span class="ldot" style="background:#10b981"></span>問題なし</span>
+      <div class="inline-criteria">
+        <span class="inline-criteria-lbl">判定基準</span>
+        <span id="criteria-content"></span>
       </div>
     </div>
     <div class="card-grid" id="card-grid"></div>
@@ -472,8 +466,23 @@
     document.getElementById('demo-label').style.display = 'inline';
     loadData(SAMPLE_DATA);
   }
+  function showDropZone() { showView('dropzone'); }
 
-  function renderAll() { updateSummary(); renderCards(); }
+  const SUM_LABELS = {
+    delivery: { danger: '危険 (<85%)', warning: '注意 (85〜94%)', good: '問題なし (95%+)' },
+    quality:  { danger: '危険 (<80%)', warning: '注意 (80〜89%)', good: '問題なし (90%+)' },
+  };
+  function updateSumLabels(m) {
+    const lb = SUM_LABELS[m]; if (!lb) return;
+    const sd = document.getElementById('sl-danger');
+    const sw = document.getElementById('sl-warning');
+    const sg = document.getElementById('sl-good');
+    if (sd) sd.textContent = lb.danger;
+    if (sw) sw.textContent = lb.warning;
+    if (sg) sg.textContent = lb.good;
+  }
+
+  function renderAll() { updateSummary(); updateSumLabels(metric); renderCards(); }
   function metricVal(s) { return metric === 'delivery' ? s.delivery : s.quality; }
 
   function updateSummary() {
@@ -483,6 +492,11 @@
     document.getElementById('cnt-danger').textContent  = c.danger;
     document.getElementById('cnt-warning').textContent = c.warning;
     document.getElementById('cnt-good').textContent    = c.good;
+    const compCount = suppliers.filter(s =>
+      sig(s.delivery, 'delivery') === 'danger' && sig(s.quality, 'quality') === 'danger'
+    ).length;
+    const cc = document.getElementById('comp-count');
+    if (cc) cc.textContent = compCount > 0 ? `${compCount}社` : '';
   }
 
   function renderCards() {
@@ -528,6 +542,7 @@
 
   function setMetric(m) {
     updateCriteria(m);
+    updateSumLabels(m);
     metric = m;
     document.getElementById('btn-dlv').classList.toggle('active', m === 'delivery');
     document.getElementById('btn-qlt').classList.toggle('active', m === 'quality');
